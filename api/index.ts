@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { readIndex } from './_lib/storage';
+import { readIndex } from './_lib/storage.js';
 
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   res.setHeader('content-type', 'application/json');

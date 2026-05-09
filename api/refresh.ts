@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { SnapshotMeta } from './_lib/storage';
+import type { SnapshotMeta } from './_lib/storage.js';
 
 const SOURCES: Record<string, string> = {
   rented:   'https://api.heliumhomes.in/api/v1/listings/rented?limit=200',
@@ -50,7 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ ok: false, error: 'Method must be POST' });
     }
 
-    const { readIndex, writeIndex, writeFile, isBlob } = await import('./_lib/storage');
+    const { readIndex, writeIndex, writeFile, isBlob } = await import('./_lib/storage.js');
 
     if (process.env.VERCEL && !isBlob) {
       return res.status(503).json({
