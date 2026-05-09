@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type { SnapshotMeta } from './_lib/storage';
 
 const SOURCES: Record<string, string> = {
   rented:   'https://api.heliumhomes.in/api/v1/listings/rented?limit=200',
@@ -49,20 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ ok: false, error: 'Method must be POST' });
     }
 
-    // Storage is loaded INSIDE try so that any module-load failure (e.g.
-    // missing @vercel/blob package) is caught and returned as JSON instead of
-    // crashing the function and yielding Vercel's HTML error page.
-    let storage;
-    try {
-      storage = await import('./_lib/storage');
-    } catch (e: unknown) {
-      return res.status(500).json({
-        ok: false,
-        error: 'storage module failed to load: ' + (e instanceof Error ? e.message : String(e)),
-        hint: 'Is @vercel/blob installed? Check package.json + package-lock.json.',
-      });
-    }
-    const { readIndex, writeIndex, writeFile, isBlob } = storage as any;
+    const { readIndex, writeIndex, writeFile, isBlob } = await import('./_lib/storage');
 
     if (process.env.VERCEL && !isBlob) {
       return res.status(503).json({

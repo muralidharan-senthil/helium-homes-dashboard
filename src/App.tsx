@@ -47,9 +47,10 @@ export default function App() {
         setSnapshot(snap);
         setSelectedTs(target);
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setToastWithTimeout('Failed to load data — is the API server running?');
+      const msg = err instanceof Error ? err.message : String(err);
+      setToastWithTimeout('Could not load data: ' + msg, 8000);
     } finally {
       setLoading(false);
     }
@@ -68,9 +69,10 @@ export default function App() {
       const snap = await api.snapshot(ts);
       setSnapshot(snap);
       setSelectedTs(ts);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setToastWithTimeout('Could not load that snapshot');
+      const msg = err instanceof Error ? err.message : String(err);
+      setToastWithTimeout('Could not load that snapshot: ' + msg, 8000);
     } finally {
       setLoading(false);
     }
