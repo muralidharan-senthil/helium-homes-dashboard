@@ -20,60 +20,6 @@
       "backfilled": true
     },
     {
-      "generated_at_utc": "2026-05-06T10:02:44.679Z",
-      "version_timestamp": "2026-05-06T10-02-44-679Z",
-      "raw_file": "raw/helium_homes_raw_2026-05-06T10-02-44-679Z.json",
-      "collated_file": "collated/helium_homes_collated_2026-05-06T10-02-44-679Z.json",
-      "counts": {
-        "rented": 123,
-        "listings": 25,
-        "perfect": 6,
-        "unique_properties": 148
-      },
-      "summary_quick": {
-        "listings_rent_median": 60000,
-        "listings_rent_mean": 82608,
-        "rented_rent_median": 62000,
-        "rented_rent_mean": 60984.55
-      }
-    },
-    {
-      "generated_at_utc": "2026-05-06T10:02:46.908Z",
-      "version_timestamp": "2026-05-06T10-02-46-908Z",
-      "raw_file": "raw/helium_homes_raw_2026-05-06T10-02-46-908Z.json",
-      "collated_file": "collated/helium_homes_collated_2026-05-06T10-02-46-908Z.json",
-      "counts": {
-        "rented": 123,
-        "listings": 25,
-        "perfect": 6,
-        "unique_properties": 148
-      },
-      "summary_quick": {
-        "listings_rent_median": 60000,
-        "listings_rent_mean": 82608,
-        "rented_rent_median": 62000,
-        "rented_rent_mean": 60984.55
-      }
-    },
-    {
-      "generated_at_utc": "2026-05-06T17:11:53.675Z",
-      "version_timestamp": "2026-05-06T17-11-53-675Z",
-      "raw_file": "raw/helium_homes_raw_2026-05-06T17-11-53-675Z.json",
-      "collated_file": "collated/helium_homes_collated_2026-05-06T17-11-53-675Z.json",
-      "counts": {
-        "rented": 123,
-        "listings": 25,
-        "perfect": 6,
-        "unique_properties": 148
-      },
-      "summary_quick": {
-        "listings_rent_median": 60000,
-        "listings_rent_mean": 82608,
-        "rented_rent_median": 62000,
-        "rented_rent_mean": 60984.55
-      }
-    },
-    {
       "generated_at_utc": "2026-05-07T09:59:54.884Z",
       "version_timestamp": "2026-05-07T09-59-54-884Z",
       "raw_file": "raw/helium_homes_raw_2026-05-07T09-59-54-884Z.json",

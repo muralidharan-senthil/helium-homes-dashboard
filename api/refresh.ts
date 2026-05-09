@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { readIndex, writeIndex, writeFile, isBlob, type SnapshotMeta } from './_lib/storage';
 
 const SOURCES: Record<string, string> = {
   rented:   'https://api.heliumhomes.in/api/v1/listings/rented?limit=200',
@@ -42,18 +41,38 @@ async function fetchJson(url: string) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
-
-  // In production without Blob, the function can fetch but won't persist.
-  // Tell the client up-front so they don't expect the snapshot to stick.
-  if (process.env.VERCEL && !isBlob) {
-    return res.status(503).json({
-      ok: false,
-      error: 'BLOB_READ_WRITE_TOKEN not set — connect a Vercel Blob store to enable Get Data on production.',
-    });
-  }
+  // Force JSON for every response shape we emit, including unexpected throws.
+  res.setHeader('content-type', 'application/json');
 
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ ok: false, error: 'Method must be POST' });
+    }
+
+    // Storage is loaded INSIDE try so that any module-load failure (e.g.
+    // missing @vercel/blob package) is caught and returned as JSON instead of
+    // crashing the function and yielding Vercel's HTML error page.
+    let storage;
+    try {
+      storage = await import('./_lib/storage');
+    } catch (e: unknown) {
+      return res.status(500).json({
+        ok: false,
+        error: 'storage module failed to load: ' + (e instanceof Error ? e.message : String(e)),
+        hint: 'Is @vercel/blob installed? Check package.json + package-lock.json.',
+      });
+    }
+    const { readIndex, writeIndex, writeFile, isBlob } = storage as any;
+
+    if (process.env.VERCEL && !isBlob) {
+      return res.status(503).json({
+        ok: false,
+        error: 'BLOB_READ_WRITE_TOKEN is not set on this deployment',
+        hint: 'Connect a Vercel Blob store to persist new snapshots: Project → Storage → Blob → Create. Vercel auto-injects the token and redeploys.',
+      });
+    }
+
+    // Fetch all three endpoints in parallel
     const [rentedRaw, listingsRaw, perfectRaw] = await Promise.all([
       fetchJson(SOURCES.rented), fetchJson(SOURCES.listings), fetchJson(SOURCES.perfect),
     ]);
@@ -109,7 +128,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ]);
 
     const idx = await readIndex();
-    const newRun: SnapshotMeta = {
+    const newRun = {
       generated_at_utc: generatedAtUtc, version_timestamp: ts, raw_file: rawPath, collated_file: colPath,
       counts: { rented: rented.length, listings: listings.length, perfect: perfect.length, unique_properties: master.size },
       summary_quick: {
@@ -119,13 +138,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         rented_rent_mean:     collated.summary.rented.rent.mean ?? null,
       },
     };
-    idx.runs = (idx.runs || []).filter((r) => r.version_timestamp !== ts);
+    idx.runs = (idx.runs || []).filter((r: any) => r.version_timestamp !== ts);
     idx.runs.push(newRun);
-    idx.runs.sort((a, b) => a.generated_at_utc.localeCompare(b.generated_at_utc));
+    idx.runs.sort((a: any, b: any) => a.generated_at_utc.localeCompare(b.generated_at_utc));
     await writeIndex(idx);
 
     return res.status(200).json({ ok: true, latest: newRun, runs: idx.runs.length });
-  } catch (err: any) {
-    return res.status(500).json({ ok: false, error: err?.message || String(err) });
+  } catch (err: unknown) {
+    // Top-level catch: anything we missed gets returned as JSON, never as an
+    // HTML error page. The Vercel function logs will still capture the stack.
+    console.error('refresh handler crashed:', err);
+    return res.status(500).json({
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+      stack: process.env.VERCEL_ENV === 'production' ? undefined : (err instanceof Error ? err.stack : undefined),
+    });
   }
 }
