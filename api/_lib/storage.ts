@@ -2,8 +2,21 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
-// In dev fall back to the same shared `data/` folder the Express server uses.
-const LOCAL_DIR = path.resolve(process.cwd(), 'data');
+
+// Resolve the data directory robustly across:
+//   - local dev (cwd = project root)
+//   - vercel dev (cwd = project root)
+//   - vercel prod serverless (cwd = /var/task, files bundled relative to function source)
+function resolveDataDir(): string {
+  const candidates = [
+    path.resolve(process.cwd(), 'data'),
+    path.resolve(__dirname, '..', '..', 'data'),  // api/_lib/ → ../../data
+    path.resolve(__dirname, '..', '..', '..', 'data'),
+  ];
+  for (const c of candidates) if (fs.existsSync(c)) return c;
+  return candidates[0];
+}
+const LOCAL_DIR = resolveDataDir();
 
 export interface SnapshotMeta {
   generated_at_utc: string;

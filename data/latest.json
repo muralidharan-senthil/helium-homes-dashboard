@@ -1,0 +1,18 @@
+{
+  "generated_at_utc": "2026-05-09T10:51:17.000Z",
+  "version_timestamp": "2026-05-09T10-51-17-000Z",
+  "raw_file": "raw/helium_homes_raw_2026-05-09T10-51-17-000Z.json",
+  "collated_file": "collated/helium_homes_collated_2026-05-09T10-51-17-000Z.json",
+  "counts": {
+    "rented": 125,
+    "listings": 26,
+    "perfect": 5,
+    "unique_properties": 151
+  },
+  "summary_quick": {
+    "listings_rent_median": 58500,
+    "listings_rent_mean": 77969.23,
+    "rented_rent_median": 62000,
+    "rented_rent_mean": 61904.8
+  }
+}

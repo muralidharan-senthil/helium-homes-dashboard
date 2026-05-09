@@ -17,9 +17,8 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const ROOT       = path.resolve(__dirname, '..');           // dashboard-react/
-const PARENT     = path.resolve(ROOT, '..');                // workspace root (where fetch_helium_homes.js lives)
-const DATA_DIR   = path.resolve(PARENT, 'data');            // shared with the original CLI
-const SCRIPT     = path.resolve(PARENT, 'fetch_helium_homes.js');
+const DATA_DIR   = path.resolve(ROOT, 'data');             // bundled with the project
+const SCRIPT     = path.resolve(ROOT, '..', 'fetch_helium_homes.js'); // CLI in repo root
 
 const app = express();
 app.use(express.json());
@@ -77,7 +76,7 @@ app.post('/api/refresh', (_req, res) => {
   if (!fs.existsSync(SCRIPT)) {
     return res.status(500).json({ ok: false, error: 'fetch_helium_homes.js not found at ' + SCRIPT });
   }
-  const child = spawn(process.execPath, [SCRIPT, DATA_DIR], { cwd: PARENT });
+  const child = spawn(process.execPath, [SCRIPT, DATA_DIR], { cwd: path.dirname(SCRIPT) });
   let stdout = '', stderr = '';
   child.stdout.on('data', (b) => (stdout += b.toString()));
   child.stderr.on('data', (b) => (stderr += b.toString()));
