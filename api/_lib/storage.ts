@@ -1,17 +1,24 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const useBlob = !!process.env.BLOB_READ_WRITE_TOKEN;
+
+/** ESM (Vercel) has no `__dirname`; use import.meta.url like server/server.js. */
+function thisModuleDir(): string {
+  return path.dirname(fileURLToPath(import.meta.url));
+}
 
 // Resolve the data directory robustly across:
 //   - local dev (cwd = project root)
 //   - vercel dev (cwd = project root)
 //   - vercel prod serverless (cwd = /var/task, files bundled relative to function source)
 function resolveDataDir(): string {
+  const here = thisModuleDir();
   const candidates = [
     path.resolve(process.cwd(), 'data'),
-    path.resolve(__dirname, '..', '..', 'data'),  // api/_lib/ → ../../data
-    path.resolve(__dirname, '..', '..', '..', 'data'),
+    path.resolve(here, '..', '..', 'data'), // api/_lib/ → ../../data
+    path.resolve(here, '..', '..', '..', 'data'),
   ];
   for (const c of candidates) if (fs.existsSync(c)) return c;
   return candidates[0];
