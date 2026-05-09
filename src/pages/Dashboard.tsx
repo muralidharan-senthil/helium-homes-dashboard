@@ -55,9 +55,9 @@ export function Dashboard({ snapshot, runs, filter, onFilterChange, interest, on
       <KPIRow properties={props} runs={runs.length} />
 
       <div className="fin-row">
-        <FinancialCard properties={props} group="RENTED" title="Occupied units" revenueLabel="Monthly Revenue" interest={interest} onInterestChange={onInterestChange} />
-        <FinancialCard properties={props} group="RESERVED" title="Reserved units" revenueLabel="Expected Revenue" interest={interest} onInterestChange={onInterestChange} />
-        <FinancialCard properties={props} group="ACTIVE" title="Unoccupied units" revenueLabel="Unrealized Revenue" interest={interest} onInterestChange={onInterestChange} />
+        <FinancialCard properties={props} group="RENTED" title="Occupied units" interest={interest} onInterestChange={onInterestChange} />
+        <FinancialCard properties={props} group="RESERVED" title="Reserved units" interest={interest} onInterestChange={onInterestChange} />
+        <FinancialCard properties={props} group="ACTIVE" title="Unoccupied units" interest={interest} onInterestChange={onInterestChange} />
       </div>
 
       <div className="charts-row">

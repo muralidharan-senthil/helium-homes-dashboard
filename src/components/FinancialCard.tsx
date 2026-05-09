@@ -1,21 +1,18 @@
 import type { Property, Status, InterestState } from '../types';
-import { groupCalc, fmtINR, fmtINRk, fmtNum, HELIUM_PREMIUM } from '../utils';
+import { groupCalc, fmtINR, fmtINRk, fmtNum, HELIUM_RETAINER } from '../utils';
 
 interface Props {
   properties: Property[];
   group: Status;
   title: string;
-  /** Label hint for the income row (Reserved/Unoccupied get "expected"/"projected"). */
-  revenueLabel: string;
   interest: InterestState;
   onInterestChange: (next: InterestState) => void;
 }
 
-export function FinancialCard({ properties, group, title, revenueLabel, interest, onInterestChange }: Props) {
+export function FinancialCard({ properties, group, title, interest, onInterestChange }: Props) {
   const calc = groupCalc(properties, group, interest[group]);
-  const isUnoccupied = group === 'ACTIVE';
-  const premiumPct = (HELIUM_PREMIUM * 100).toFixed(0);
-  const ownerPct   = ((1 - HELIUM_PREMIUM) * 100).toFixed(0);
+  const isVacant = group === 'ACTIVE';
+  const retainerPct = (HELIUM_RETAINER * 100).toFixed(0);
 
   return (
     <div className="card fin-card">
@@ -24,35 +21,43 @@ export function FinancialCard({ properties, group, title, revenueLabel, interest
         <div className="fin-card-head-count">{calc.count} unit{calc.count === 1 ? '' : 's'}</div>
       </div>
       <div className="fin-card-body">
-        {/* --- Operational / portfolio metrics --- */}
+        {/* --- Operational metrics --- */}
         <Row label="Avg listed rent" value={fmtINR(calc.avgRent)} />
-        {!isUnoccupied && <Row label="Avg days to rent" value={calc.avgDays != null ? fmtNum(calc.avgDays, 1) + ' days' : '—'} />}
-        {!isUnoccupied && <Row label="Avg visits booked" value={calc.avgVisits != null ? fmtNum(calc.avgVisits, 1) : '—'} />}
+        {!isVacant && <Row label="Avg days to rent" value={calc.avgDays != null ? fmtNum(calc.avgDays, 1) + ' days' : '—'} />}
+        {!isVacant && <Row label="Avg visits booked" value={calc.avgVisits != null ? fmtNum(calc.avgVisits, 1) : '—'} />}
         <Row label="Avg full deposit" value={fmtINR(calc.avgDeposit)} />
-        <Row label="One month of rent (Helium promise)" value={fmtINRk(calc.oneMonthRent)} />
-        <Row label="Loan availed (deposit − 1 month rent)" value={fmtINRk(calc.loan)} />
+        <Row label={isVacant ? 'FinTree loan (full deposit)' : 'FinTree loan (deposit − 1 mo)'} value={fmtINRk(calc.loan)} />
 
-        {/* --- P&L breakdown --- */}
+        {/* --- Recurring P&L (monthly) --- */}
         <div className="pnl-block">
-          <div className="pnl-section-label">Income</div>
-          <Row label={`${revenueLabel} (tenant pays)`} value={fmtINRk(calc.tenantRevenue)} />
+          <div className="pnl-section-label">Recurring · monthly</div>
+          <div className="pnl-mini-label">Income</div>
+          <Row label={`Service fee (${retainerPct}% retainer)`} value={fmtINRk(calc.heliumServiceFee)} positive />
 
-          <div className="pnl-section-label" style={{ marginTop: 10 }}>Expenses</div>
-          <Row label={`Owner payout (${ownerPct}%)`} value={'−' + fmtINRk(calc.ownerPayout)} expense />
-          <Row label="Interest to Fintree (on loan)" value={'−' + fmtINRk(calc.monthlyInterest)} expense />
+          <div className="pnl-mini-label" style={{ marginTop: 8 }}>Expenses</div>
+          {isVacant && (
+            <Row
+              label="Rent paid to owner (no tenant)"
+              value={'−' + fmtINRk(calc.ownerPayout)}
+              expense
+              tooltip="Helium pays owner regardless of occupancy"
+            />
+          )}
+          <Row label="Interest to FinTree" value={'−' + fmtINRk(calc.monthlyInterest)} expense />
 
           <div className="pnl-divider" />
           <Row
-            label={`Helium revenue (${premiumPct}% premium)`}
-            value={fmtINRk(calc.heliumRevenue)}
+            label="Net recurring profit"
+            value={fmtINRk(calc.profit)}
             emphasize
+            negative={calc.profit < 0}
           />
         </div>
 
         {/* --- Interest slider --- */}
         <div className="slider-block">
           <div className="slider-row">
-            <span className="slider-label">Interest rate (annual)</span>
+            <span className="slider-label">FinTree interest rate (annual)</span>
             <span className="slider-value">{calc.interestRate.toFixed(1)}%</span>
           </div>
           <input
@@ -62,31 +67,37 @@ export function FinancialCard({ properties, group, title, revenueLabel, interest
           />
         </div>
 
-        {/* --- Net profit --- */}
-        <div className={`stat-row profit ${calc.profit < 0 ? 'negative' : ''}`} style={{ marginTop: 10 }}>
-          <span className="stat-label" style={{ fontWeight: 600, color: 'var(--text)' }}>
-            Net profit (Helium rev − Interest)
-          </span>
-          <span className="stat-value">{fmtINRk(calc.profit)}</span>
+        {/* --- One-time per new tenancy --- */}
+        <div className="pnl-block">
+          <div className="pnl-section-label">{isVacant ? 'Projected on first tenancy' : 'One-time on tenancy start'}</div>
+          <Row label="Brokerage to Helium (1 mo rent)" value={fmtINRk(calc.heliumBrokerage)} positive />
+          <Row label="Tenant deposit (applied to loan)" value={fmtINRk(calc.oneMonthRent)} />
         </div>
       </div>
     </div>
   );
 }
 
-function Row({ label, value, expense, emphasize }: { label: string; value: string; expense?: boolean; emphasize?: boolean }) {
+function Row({
+  label, value, expense, positive, emphasize, negative, tooltip,
+}: { label: string; value: string; expense?: boolean; positive?: boolean; emphasize?: boolean; negative?: boolean; tooltip?: string }) {
+  const valueStyle: React.CSSProperties = {};
+  if (expense) valueStyle.color = 'var(--danger)';
+  if (positive && !emphasize) valueStyle.color = 'var(--accent)';
+  if (emphasize) {
+    valueStyle.color = negative ? 'var(--danger)' : 'var(--success)';
+    valueStyle.fontSize = 16;
+  }
   return (
-    <div className="stat-row">
-      <span className="stat-label" style={emphasize ? { fontWeight: 600, color: 'var(--text)' } : undefined}>{label}</span>
+    <div className={`stat-row ${emphasize ? 'profit' : ''} ${negative && emphasize ? 'negative' : ''}`}>
       <span
-        className="stat-value"
-        style={{
-          ...(expense ? { color: 'var(--danger)' } : null),
-          ...(emphasize ? { color: 'var(--accent)', fontSize: 15 } : null),
-        }}
+        className="stat-label"
+        style={emphasize ? { fontWeight: 600, color: 'var(--text)' } : undefined}
+        title={tooltip}
       >
-        {value}
+        {label}
       </span>
+      <span className="stat-value" style={valueStyle}>{value}</span>
     </div>
   );
 }

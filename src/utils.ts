@@ -63,10 +63,17 @@ export function debounce<F extends (...args: any[]) => void>(fn: F, ms = 200): (
   };
 }
 
-// Helium's premium / margin — added on top of the owner's rent and listed on the
-// website. Tenants pay the listed amount; Helium forwards (1 - PREMIUM) of that
-// to the owner and keeps PREMIUM as its gross revenue.
-export const HELIUM_PREMIUM = 0.10;
+// New business model:
+//   - Homeowner pays Helium HELIUM_RETAINER (4%) of rent each month as a service fee.
+//   - Helium pays full rent to homeowner regardless of occupancy.
+//   - Tenant pays the same listed rent (no premium on top).
+//   - On move-in, tenant pays Helium 1 month rent as brokerage (one-time).
+//   - On move-in, tenant pays Helium 1 month rent as security deposit, which
+//     reduces the FinTree loan principal for that unit.
+//   - FinTree interest on the loan is paid out of the recurring 4% retainer.
+export const HELIUM_RETAINER = 0.04;
+// Kept for back-compat with older imports — points at the new retainer constant.
+export const HELIUM_PREMIUM = HELIUM_RETAINER;
 
 export function groupCalc(properties: Property[], group: Status, interestRate: number): GroupCalc {
   const inGroup = properties.filter((p) => p.status === group);
@@ -77,28 +84,42 @@ export function groupCalc(properties: Property[], group: Status, interestRate: n
     .filter((p) => p.marketing_started_at && p.rented_at)
     .map((p) => (Number(p.rented_at) - Number(p.marketing_started_at)) / 86_400_000);
 
-  const tenantRevenue = sum(rents);              // tenants pay listed rent
-  const ownerPayout   = tenantRevenue * (1 - HELIUM_PREMIUM); // 90% goes to owners
-  const heliumRevenue = tenantRevenue * HELIUM_PREMIUM;       // 10% margin
-  const totalDeposit  = sum(deposits);
-  const oneMonthRent  = tenantRevenue;           // 1 month of listed rent
-  const loan          = totalDeposit - oneMonthRent;
-  const monthlyInterest = (loan * (interestRate / 100)) / 12;
-  const profit          = heliumRevenue - monthlyInterest;    // updated formula
+  const tenantRevenue     = sum(rents);
+  const ownerPayout       = tenantRevenue;             // Helium pays owner full rent always
+  const heliumServiceFee  = tenantRevenue * HELIUM_RETAINER;
+  const heliumBrokerage   = tenantRevenue;             // 1 month rent, one-time per tenancy
+  const totalDeposit      = sum(deposits);
+  const oneMonthRent      = tenantRevenue;
+
+  // Tenant security deposit reduces loan principal once they move in. Reserved
+  // tenants are treated as having paid (they're committed). Vacant units carry
+  // the full FinTree loan.
+  const tenantSecurityApplied = group === 'ACTIVE' ? 0 : oneMonthRent;
+  const loan                  = totalDeposit - tenantSecurityApplied;
+  const monthlyInterest       = (loan * (interestRate / 100)) / 12;
+
+  // When occupied/reserved, tenant rent flows through to owner — net zero on
+  // rent. When vacant, Helium still pays owner but no tenant rent comes in.
+  const netRentImpact = group === 'ACTIVE' ? -ownerPayout : 0;
+
+  const profit = heliumServiceFee + netRentImpact - monthlyInterest;
 
   return {
     count: inGroup.length,
     avgRent: avg(rents),
     tenantRevenue,
     ownerPayout,
-    heliumRevenue,
-    monthlyRevenue: tenantRevenue, // alias kept so older code paths don't break
+    heliumServiceFee,
+    heliumBrokerage,
+    heliumRevenue: heliumServiceFee, // alias for back-compat
+    monthlyRevenue: tenantRevenue,   // alias for back-compat
     avgDays: avg(days),
     avgVisits: avg(visits),
     avgDeposit: avg(deposits),
     oneMonthRent,
     loan,
     monthlyInterest,
+    netRentImpact,
     profit,
     interestRate,
   };

@@ -155,17 +155,20 @@ export interface InterestState {
 
 export interface GroupCalc {
   count: number;
-  avgRent: number | null;          // listed rent (tenant-facing) — what's in JSON
-  tenantRevenue: number;           // sum of listed rent — what tenants pay
-  ownerPayout: number;             // 90% of tenant revenue — paid to homeowners
-  heliumRevenue: number;           // 10% premium — Helium's actual gross income
-  monthlyRevenue: number;          // alias of tenantRevenue (kept for back-compat)
+  avgRent: number | null;           // listed rent (homeowner-quoted) — same paid by tenant
+  tenantRevenue: number;            // sum of listed rent — flows tenant→Helium→owner (net 0)
+  ownerPayout: number;              // = tenantRevenue (Helium pays owner regardless of occupancy)
+  heliumServiceFee: number;         // 4% retainer paid by homeowner to Helium (recurring)
+  heliumBrokerage: number;          // 1 month rent paid by tenant to Helium (one-time per tenancy)
+  heliumRevenue: number;            // alias of heliumServiceFee for older code paths
+  monthlyRevenue: number;           // alias of tenantRevenue
   avgDays: number | null;
   avgVisits: number | null;
   avgDeposit: number | null;
-  oneMonthRent: number;            // Helium's 'one month of listed rent' promise
-  loan: number;                    // sum(full_deposit) − oneMonthRent
-  monthlyInterest: number;         // loan × rate% / 12
-  profit: number;                  // heliumRevenue − monthlyInterest
+  oneMonthRent: number;             // 1 month of listed rent (used as tenant security deposit)
+  loan: number;                     // FinTree borrowing: full_deposit minus tenant security if any
+  monthlyInterest: number;          // loan × rate% / 12 — paid out of service fee
+  netRentImpact: number;            // 0 when occupied, −ownerPayout when vacant
+  profit: number;                   // heliumServiceFee + netRentImpact − monthlyInterest
   interestRate: number;
 }
