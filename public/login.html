@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Helium Homes — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #fafafa; --surface: #ffffff; --border: #e4e4e7;
+    --text: #09090b; --text-muted: #52525b;
+    --accent: #004449; --accent-2: #007a82; --accent-soft: rgba(0,68,73,0.08);
+    --danger: #ef4444;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #09090b; --surface: #131316; --border: #27272a;
+      --text: #fafafa; --text-muted: #a1a1aa;
+      --accent: #2dd4bf; --accent-2: #5eead4; --accent-soft: rgba(45,212,191,0.12);
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+    display: flex; align-items: center; justify-content: center; padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 32px; width: 100%; max-width: 380px;
+    box-shadow: 0 10px 40px -20px rgba(0,0,0,0.15);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+  .brand-mark { width: 32px; height: 32px; border-radius: 9px; }
+  .brand-name { font-weight: 600; font-size: 16px; }
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+  label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 500; }
+  input {
+    width: 100%; height: 40px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); padding: 0 12px; font-size: 14px;
+    font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  button {
+    width: 100%; height: 40px; border-radius: 8px; border: none;
+    background: var(--accent); color: white; font-weight: 600; font-size: 14px;
+    margin-top: 16px; cursor: pointer; font-family: inherit;
+    transition: opacity 0.15s, transform 0.05s;
+  }
+  button:hover { opacity: 0.92; }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  .err { color: var(--danger); font-size: 12px; margin-top: 12px; min-height: 16px; }
+</style>
+</head>
+<body>
+  <form class="card" id="f">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent-2)"/></linearGradient></defs>
+        <rect width="32" height="32" rx="9" fill="url(#g)"/>
+        <text x="16" y="22" text-anchor="middle" font-size="13" font-weight="700" fill="white" font-family="Inter, sans-serif" letter-spacing="-0.02em">He</text>
+      </svg>
+      <div class="brand-name">Helium Homes</div>
+    </div>
+    <h1>Dashboard sign in</h1>
+    <div class="sub">Enter the password to view the portfolio.</div>
+    <label for="pw">Password</label>
+    <input id="pw" name="password" type="password" autocomplete="current-password" required autofocus />
+    <button type="submit" id="btn">Sign in →</button>
+    <div class="err" id="err"></div>
+  </form>
+<script>
+  const f = document.getElementById('f');
+  const btn = document.getElementById('btn');
+  const err = document.getElementById('err');
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    err.textContent = '';
+    btn.disabled = true; btn.textContent = 'Signing in...';
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: document.getElementById('pw').value }),
+      });
+      if (r.ok) {
+        const next = new URLSearchParams(location.search).get('next') || '/';
+        location.replace(next);
+      } else {
+        err.textContent = r.status === 401 ? 'Wrong password.' : 'Sign-in failed. Try again.';
+        btn.disabled = false; btn.textContent = 'Sign in →';
+      }
+    } catch (e) {
+      err.textContent = 'Network error.';
+      btn.disabled = false; btn.textContent = 'Sign in →';
+    }
+  });
+</script>
+</body>
+</html>
